@@ -1,67 +1,83 @@
-(function replaceFootageWithParentFolderEXR() {
-    var project = app.project;
-    var selectedItems = project.selection;
+/*
+replaceFootage.js
+- Script for replace multiple footage that have same parent folder path. Suitable for 
+  AOV's render workflow
+- https://github.com/muhammadli3d
+- 2025-12-22
+*/
 
-    if (selectedItems.length === 0) {
-        alert("Please select the footage items you want to replace.");
-        return;
-    }
 
-    var parentFolderPath = prompt("Please paste the path of the parent folder containing the replacement subfolders", "");
-
-    if (parentFolderPath === null || parentFolderPath === "") {
-        alert("No parent folder path provided.");
-        return;
-    }
-
-    var parentFolder = new Folder(parentFolderPath);
-
-    if (!parentFolder.exists) {
-        alert("The specified parent folder does not exist.");
-        return;
-    }
-
-    app.beginUndoGroup("Replace Footage Items");
-
-    var subfolders = parentFolder.getFiles(function(file) {
-        return file instanceof Folder;
-    });
-
-    var replacements = {};
-
-    for (var i = 0; i < subfolders.length; i++) {
-        var subfolder = subfolders[i];
-        var files = subfolder.getFiles(function(file) {
-            return file instanceof File && file.name.match(/\d{4}\.exr$/i);  // Match only the sequence files (e.g., 0000.exr, 0001.exr)
-        });
-
-        if (files.length > 0) {
-            var sequenceName = files[0].name.replace(/\d{4}\.exr$/, "####.exr");
-            var firstFilePath = files[0].fsName;
-            replacements[sequenceName] = firstFilePath;
-            $.writeln("Found sequence: " + sequenceName + " at path: " + firstFilePath);  // Debug output
-        }
-    }
-
-    for (var i = 0; i < selectedItems.length; i++) {
-        if (selectedItems[i] instanceof FootageItem) {
-            var oldFootageName = selectedItems[i].mainSource.file.name.replace(/\d{4}\.exr$/, "####.exr");
-            var newFootageFile = replacements[oldFootageName];
-
-            $.writeln("Trying to replace: " + oldFootageName);  // Debug output
-
-            if (newFootageFile) {
-                var newFile = new File(newFootageFile);
-                selectedItems[i].replaceWithSequence(newFile, false);  // Set the second parameter to true if you want to force alphabetical order
-                $.writeln("Replaced with: " + newFootageFile);  // Debug output
-            } else {
-                alert("Replacement sequence not found for: " + oldFootageName);
-                $.writeln("Replacement sequence not found for: " + oldFootageName);  // Debug output
-            }
-        }
-    }
-
-    app.endUndoGroup();
-
-    alert("Footage replacement complete.");
+(function replaceFootageSequence() {
+	var project = app.project;
+	var selectedItems = project.selection;
+	
+	if (selectedItems.length === 0) {
+		alert("Please select the footage in Project window you want to replace.");
+		return;
+	}
+	
+	var latestFolderPath = prompt("Please paste the path's folder of latest render", "");
+	
+	if (latestFolderPath === null || latestFolderPath === "") {
+		alert("No folder path provided.");
+		return;
+	}
+	
+	var latestFolder = new Folder(latestFolderPath);
+	
+	if (!latestFolder.exists) {
+		alert("The specified folder does not exist.");
+		return;
+	}
+	
+	app.beginUndoGroup("Replace Footage Items");
+	
+	var replacements = {};
+	
+	function findRenderFolders(folder) {
+			var subfolders = folder.getFiles(function(file) {
+				return file instanceof Folder;
+			});
+			
+			for (var i = 0; i < subfolders.length; i++) {
+				var subfolder = subfolders[i];
+				var files = subfolder.getFiles(function(file) {
+					return file instanceof File && file.name.match(/\d{4}\.\w+$/i); // Match only the sequence files (e.g 0000.*, 0001.*)
+				});
+				
+				if (files .length > 0) {
+					var sequenceName = files[0].name.replace(/\d{4}(\.\w+)$/, "####$1");
+					var firstFilePath = files[0].fsName;
+					replacements[sequenceName] = firstFilePath;
+					$.writeln("Found sequence: " + sequenceName + " at path: " + firstFilePath); // Debug output
+				}
+				
+				// Recursively search in subfolders
+				findRenderFolders(subfolder);
+			}
+	}
+	
+	findRenderFolders(latestFolder);
+	
+	for (var i = 0; i < selectedItems.length; i++) {
+		if (selectedItems[i] instanceof FootageItem) {
+			var oldFootageName = selectedItems[i].mainSource.file.name.replace(/\d{4}(\.\w+)$/, "####$1");
+			var newFootageFile = replacements[oldFootageName];
+			
+			$.writeln("Trying to replace: " + oldFootageName); // Debug output
+			
+			if (newFootageFile) {
+				var newFile = new File(newFootageFile);
+				selectedItems[i].replaceWithSequence(newFile, false); // Set the second parameter to true if want to force alphabetical order
+				$.writeln("Replace with: " + newFootageFile); // Debug output
+			} else {
+				alert("Replacement sequence not found for: " + oldFootageName);
+				$.writeln("Replacement seqeunce not found for: " + oldFootageName); // Debug output
+			}
+		}
+	}
+	
+	app.endUndoGroup();
+	
+	alert("Footage replacement complete.")
 })();
