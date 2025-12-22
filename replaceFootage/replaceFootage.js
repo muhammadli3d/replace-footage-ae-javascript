@@ -4,6 +4,10 @@ replaceFootage.js
   AOV's render workflow
 - https://github.com/muhammadli3d
 - 2025-12-22
+--------------------------------------------------------------------------------
+1. Run script in After Effects
+2. Paste path in pop-up window
+--------------------------------------------------------------------------------
 */
 
 
