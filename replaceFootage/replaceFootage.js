@@ -5,8 +5,9 @@ replaceFootage.js
 - https://github.com/muhammadli3d
 - 2025-12-22
 --------------------------------------------------------------------------------
-1. Run script in After Effects
-2. Paste path in pop-up window
+1. Select footage in Project Panel
+2. Run script in After Effects
+3. Paste path in pop-up window
 --------------------------------------------------------------------------------
 */
 
